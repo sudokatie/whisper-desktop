@@ -9,7 +9,6 @@ pub mod sync;
 pub mod system;
 pub mod commands;
 
-use tauri::Manager;
 
 /// Temporary greet command for testing
 #[tauri::command]
@@ -21,7 +20,7 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(|_app| {
             // Initialize logging
             tracing_subscriber::fmt()
                 .with_env_filter("whisper_desktop=debug")
