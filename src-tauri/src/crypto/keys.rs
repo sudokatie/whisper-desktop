@@ -10,9 +10,14 @@ pub fn generate_keypair() -> (SigningKey, VerifyingKey) {
     (signing_key, verifying_key)
 }
 
-/// Derive peer ID from public key (Base58 encoded).
+/// Derive peer ID from public key (Base58 encoded string).
 pub fn derive_peer_id(public_key: &VerifyingKey) -> String {
     bs58::encode(public_key.as_bytes()).into_string()
+}
+
+/// Get peer ID as raw bytes (for wire protocol).
+pub fn peer_id_bytes(public_key: &VerifyingKey) -> [u8; 32] {
+    *public_key.as_bytes()
 }
 
 #[cfg(test)]
