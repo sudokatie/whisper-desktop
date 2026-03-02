@@ -54,6 +54,11 @@ pub fn run() {
                 }
             });
             
+            // Set up system tray
+            if let Err(e) = system::tray::setup_tray(app.handle()) {
+                tracing::error!("Failed to setup system tray: {}", e);
+            }
+            
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
