@@ -1,50 +1,150 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+/**
+ * Main application component - handles routing based on identity state.
+ */
+
+import { useEffect, useState } from 'react';
+import { useIdentityStore, useMessagesStore } from './stores';
+import { Sidebar, TitleBar } from './components';
+import {
+  UnlockPage,
+  OnboardingPage,
+  ConversationsPage,
+  ChatPage,
+  ContactsPage,
+  SettingsPage,
+  LinkDevicePage,
+} from './pages';
+
+type MainView = 'conversations' | 'contacts' | 'settings';
+type ActivePage = 'main' | 'chat' | 'link-device';
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const { state: identityState, isLoading, checkIdentity } = useIdentityStore();
+  const { setupListeners, loadConversations, refreshUnreadCount } = useMessagesStore();
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  const [mainView, setMainView] = useState<MainView>('conversations');
+  const [activePage, setActivePage] = useState<ActivePage>('main');
+  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
+
+  // Check identity on mount
+  useEffect(() => {
+    checkIdentity();
+  }, [checkIdentity]);
+
+  // Setup message listeners when unlocked
+  useEffect(() => {
+    if (identityState.status === 'unlocked') {
+      loadConversations();
+      refreshUnreadCount();
+      
+      let cleanup: (() => void) | undefined;
+      setupListeners().then((unlisten) => {
+        cleanup = unlisten;
+      });
+      
+      return () => {
+        cleanup?.();
+      };
+    }
+  }, [identityState.status, setupListeners, loadConversations, refreshUnreadCount]);
+
+  // Loading state
+  if (isLoading && identityState.status === 'locked') {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
   }
 
+  // No identity - show onboarding
+  if (identityState.status === 'none') {
+    return <OnboardingPage />;
+  }
+
+  // Identity locked - show unlock
+  if (identityState.status === 'locked') {
+    return <UnlockPage />;
+  }
+
+  // Handle conversation selection
+  const handleSelectConversation = (peerId: string) => {
+    setSelectedPeerId(peerId);
+    setActivePage('chat');
+  };
+
+  // Handle new message (opens contacts to select recipient)
+  const handleNewMessage = () => {
+    setMainView('contacts');
+  };
+
+  // Handle contact selection (opens chat)
+  const handleSelectContact = (peerId: string) => {
+    setSelectedPeerId(peerId);
+    setActivePage('chat');
+    setMainView('conversations'); // Switch back to conversations view
+  };
+
+  // Handle back from chat
+  const handleBackFromChat = () => {
+    setSelectedPeerId(null);
+    setActivePage('main');
+  };
+
+  // Handle link device
+  const handleLinkDevice = () => {
+    setActivePage('link-device');
+  };
+
+  // Handle back from link device
+  const handleBackFromLinkDevice = () => {
+    setActivePage('main');
+    setMainView('settings');
+  };
+
+  // Identity unlocked - show main app
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="h-screen flex flex-col bg-gray-950">
+      <TitleBar />
+      
+      <div className="flex-1 flex overflow-hidden">
+        {/* Show sidebar on main page */}
+        {activePage === 'main' && (
+          <Sidebar
+            currentView={mainView}
+            onViewChange={setMainView}
+            onConversationSelect={handleSelectConversation}
+            selectedPeerId={selectedPeerId}
+          />
+        )}
+        
+        {/* Main content area */}
+        <main className="flex-1 overflow-hidden">
+          {activePage === 'chat' && selectedPeerId && (
+            <ChatPage peerId={selectedPeerId} onBack={handleBackFromChat} />
+          )}
+          
+          {activePage === 'link-device' && (
+            <LinkDevicePage onBack={handleBackFromLinkDevice} />
+          )}
+          
+          {activePage === 'main' && mainView === 'conversations' && (
+            <ConversationsPage
+              onSelectConversation={handleSelectConversation}
+              onNewMessage={handleNewMessage}
+            />
+          )}
+          
+          {activePage === 'main' && mainView === 'contacts' && (
+            <ContactsPage onSelectContact={handleSelectContact} />
+          )}
+          
+          {activePage === 'main' && mainView === 'settings' && (
+            <SettingsPage onLinkDevice={handleLinkDevice} />
+          )}
+        </main>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    </div>
   );
 }
 
