@@ -13,6 +13,7 @@ pub mod contacts;
 pub mod settings;
 pub mod relay;
 pub mod notifications;
+pub mod autostart;
 
 /// Shared application state managed by Tauri.
 pub struct AppState {
