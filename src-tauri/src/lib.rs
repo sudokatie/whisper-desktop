@@ -90,6 +90,11 @@ pub fn run() {
             commands::relay::connect_relay,
             commands::relay::disconnect_relay,
             commands::relay::get_relay_status,
+            // Notification commands
+            commands::notifications::check_notification_permission,
+            commands::notifications::request_notification_permission,
+            commands::notifications::show_test_notification,
+            commands::notifications::show_message_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
