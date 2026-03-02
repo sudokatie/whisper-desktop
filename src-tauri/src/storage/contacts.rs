@@ -3,6 +3,7 @@
 //! CRUD operations for managing contacts.
 
 use crate::storage::database::Database;
+use serde::Serialize;
 use sqlx::Row;
 use thiserror::Error;
 
@@ -18,7 +19,7 @@ pub enum ContactError {
 }
 
 /// Trust level for a contact.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TrustLevel {
     Unknown,
     Unverified,
@@ -44,7 +45,7 @@ impl TrustLevel {
 }
 
 /// A contact entry.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Contact {
     pub peer_id: String,
     pub alias: String,

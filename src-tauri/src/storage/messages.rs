@@ -3,6 +3,7 @@
 //! Store and retrieve encrypted messages.
 
 use crate::storage::database::Database;
+use serde::Serialize;
 use sqlx::Row;
 use thiserror::Error;
 
@@ -16,7 +17,7 @@ pub enum MessageError {
 }
 
 /// Message delivery status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum MessageStatus {
     Pending,
     Sent,
@@ -48,7 +49,7 @@ impl MessageStatus {
 }
 
 /// Message direction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum MessageDirection {
     Incoming,
     Outgoing,
@@ -71,7 +72,7 @@ impl MessageDirection {
 }
 
 /// A stored message.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Message {
     pub id: String,
     pub peer_id: String,
@@ -82,7 +83,7 @@ pub struct Message {
 }
 
 /// Conversation summary.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Conversation {
     pub peer_id: String,
     pub last_message: Option<Vec<u8>>,
@@ -105,6 +106,26 @@ pub async fn store_message(db: &Database, msg: &Message) -> Result<(), MessageEr
     .await?;
 
     Ok(())
+}
+
+/// Create and store a new message.
+pub async fn create_message(
+    db: &Database,
+    peer_id: &str,
+    content: &str,
+    direction: MessageDirection,
+) -> Result<Message, MessageError> {
+    let msg = Message {
+        id: uuid::Uuid::new_v4().to_string(),
+        peer_id: peer_id.to_string(),
+        content: content.as_bytes().to_vec(),
+        timestamp: chrono::Utc::now().timestamp(),
+        status: MessageStatus::Pending,
+        direction,
+    };
+    
+    store_message(db, &msg).await?;
+    Ok(msg)
 }
 
 /// Get messages for a peer with pagination.

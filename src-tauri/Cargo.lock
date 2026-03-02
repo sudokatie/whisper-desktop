@@ -5751,6 +5751,7 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "tracing-subscriber",
+ "uuid",
  "x25519-dalek",
 ]
 

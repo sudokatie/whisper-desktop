@@ -6,5 +6,6 @@ pub mod database;
 pub mod identity;
 pub mod messages;
 pub mod contacts;
+pub mod settings;
 
 pub use database::{Database, DatabaseError};
